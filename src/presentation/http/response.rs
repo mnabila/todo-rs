@@ -5,8 +5,6 @@ use axum::{
 };
 use serde::Serialize;
 
-pub mod todo;
-
 #[derive(Serialize)]
 pub struct ApiBody<T> {
     pub code: u16,

@@ -8,8 +8,8 @@ use validator::Validate;
 
 use crate::{
     application::todo::dto::{CreateTodoDto, UpdateTodoDto},
-    domain::todo::error::TodoError,
-    presentation::http::{controller::ApiResponse, router::todo::TodoState},
+    domain::shared::error::ModelError,
+    presentation::http::{response::ApiResponse, todo::router::TodoState},
 };
 
 #[axum::debug_handler]
@@ -50,7 +50,7 @@ pub async fn delete_todo(
 ) -> impl IntoResponse {
     match state.todo.delete_todo(id).await {
         Ok(todo) => ApiResponse::Success(todo),
-        Err(TodoError::DeleteError(_)) => ApiResponse::InternalServerError,
+        Err(ModelError::DeleteError(_, _)) => ApiResponse::InternalServerError,
         Err(_) => ApiResponse::InternalServerError,
     }
 }
@@ -59,7 +59,7 @@ pub async fn delete_todo(
 pub async fn find_all_todo(State(state): State<TodoState>) -> impl IntoResponse {
     match state.todo.find_all().await {
         Ok(todos) => ApiResponse::Success(todos),
-        Err(TodoError::NotFound) => ApiResponse::NotFound,
+        Err(ModelError::NotFound(_)) => ApiResponse::NotFound,
         Err(_) => ApiResponse::InternalServerError,
     }
 }
@@ -71,7 +71,7 @@ pub async fn find_todo_by_id(
 ) -> impl IntoResponse {
     match state.todo.find_by_id(id).await {
         Ok(todo) => ApiResponse::Success(todo),
-        Err(TodoError::NotFound) => ApiResponse::NotFound,
+        Err(ModelError::NotFound(_)) => ApiResponse::NotFound,
         Err(_) => ApiResponse::InternalServerError,
     }
 }

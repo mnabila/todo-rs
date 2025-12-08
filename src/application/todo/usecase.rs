@@ -4,7 +4,10 @@ use uuid::Uuid;
 
 use crate::{
     application::todo::dto::{CreateTodoDto, UpdateTodoDto},
-    domain::todo::{error::TodoError, model::Todo, repository::TodoRepository},
+    domain::{
+        shared::error::ModelError,
+        todo::{model::Todo, repository::TodoRepository},
+    },
 };
 
 pub struct TodoUseCase<T: TodoRepository + Send + Sync> {
@@ -16,7 +19,7 @@ impl<T: TodoRepository> TodoUseCase<T> {
         Self { todo }
     }
 
-    pub async fn create_todo(&self, dto: CreateTodoDto) -> Result<(), TodoError> {
+    pub async fn create_todo(&self, dto: CreateTodoDto) -> Result<(), ModelError> {
         let todo = Todo {
             id: Uuid::new_v4(),
             title: dto.title,
@@ -28,7 +31,7 @@ impl<T: TodoRepository> TodoUseCase<T> {
         self.todo.create(&todo).await
     }
 
-    pub async fn update_todo(&self, id: Uuid, dto: UpdateTodoDto) -> Result<(), TodoError> {
+    pub async fn update_todo(&self, id: Uuid, dto: UpdateTodoDto) -> Result<(), ModelError> {
         let todo = Todo {
             id,
             title: dto.title,
@@ -40,15 +43,15 @@ impl<T: TodoRepository> TodoUseCase<T> {
         self.todo.update(&todo).await
     }
 
-    pub async fn delete_todo(&self, id: Uuid) -> Result<(), TodoError> {
+    pub async fn delete_todo(&self, id: Uuid) -> Result<(), ModelError> {
         self.todo.delete(id).await
     }
 
-    pub async fn find_all(&self) -> Result<Vec<Todo>, TodoError> {
+    pub async fn find_all(&self) -> Result<Vec<Todo>, ModelError> {
         self.todo.find_all().await
     }
 
-    pub async fn find_by_id(&self, id: Uuid) -> Result<Option<Todo>, TodoError> {
+    pub async fn find_by_id(&self, id: Uuid) -> Result<Option<Todo>, ModelError> {
         self.todo.find_by_id(id).await
     }
 }

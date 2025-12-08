@@ -1,4 +1,4 @@
-use crate::{infrastructure::configuration, presentation::http::router};
+use crate::{infrastructure::configuration, presentation::http};
 use sqlx::PgPool;
 use tokio::net::TcpListener;
 
@@ -26,7 +26,9 @@ async fn main() {
         .await
         .expect("Failed to connect to PostgreSQL database");
 
-    let app = router::setup(pool);
+    // let app = infrastructure::::setup(pool);
+
+    let app = http::setup(pool);
 
     let listener = match TcpListener::bind(conf.server_addr()).await {
         Ok(listener) => {
@@ -40,7 +42,7 @@ async fn main() {
     };
 
     if let Err(err) = axum::serve(listener, app).await {
-        tracing::error!("❌ Axum server error: {}", err);
+        tracing::error!("Axum server error: {}", err);
         panic!("Server crashed");
     }
 }

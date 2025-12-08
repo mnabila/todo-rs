@@ -9,7 +9,7 @@ use sqlx::PgPool;
 use crate::{
     application::todo::usecase::TodoUseCase,
     infrastructure::database::sqlx::todo_repository::PostgresTodoRepository,
-    presentation::http::controller::todo::{
+    presentation::http::todo::controller::{
         create_todo, delete_todo, find_all_todo, find_todo_by_id, update_todo,
     },
 };
@@ -20,7 +20,7 @@ pub struct TodoState {
 }
 
 pub fn setup(pool: PgPool) -> Router {
-    let repo = PostgresTodoRepository::new(pool.clone());
+    let repo = PostgresTodoRepository::new(pool);
     let usecase = TodoUseCase::new(repo);
 
     let state = TodoState {
