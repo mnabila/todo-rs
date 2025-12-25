@@ -1,4 +1,3 @@
-use anyhow::Result;
 use async_trait::async_trait;
 use chrono::Utc;
 use sqlx::PgPool;
@@ -22,7 +21,7 @@ impl PostgresTodoRepository {
 #[async_trait]
 impl TodoRepository for PostgresTodoRepository {
     async fn create(&self, todo: &Todo) -> Result<(), ModelError> {
-        sqlx::query("insert into todos(id, title, description, created_at, updated_at) values($1,$2,$3,$4,$5)")
+        let _ = sqlx::query("insert into todos(id, title, description, created_at, updated_at) values($1,$2,$3,$4,$5)")
                 .bind(todo.id)
                 .bind(todo.title.as_str())
                 .bind(todo.description.as_str())
@@ -32,29 +31,29 @@ impl TodoRepository for PostgresTodoRepository {
                 .await
                 .map_err(|err| {
                     tracing::error!("todo_repository.find_all : {}", err.to_string());
-                    ModelError::CreateError("Todo", err.to_string())
+                    ModelError::Database(err.to_string())
                 })?;
 
         Ok(())
     }
 
-    async fn update(&self, todo: &Todo) -> Result<(), ModelError> {
+    async fn update(&self, id: Uuid, title: String, description: String) -> Result<(), ModelError> {
         let rows =
             sqlx::query("update todos set title=$1, description=$2, updated_at=$3 where id=$4")
-                .bind(&todo.title)
-                .bind(&todo.description)
+                .bind(title)
+                .bind(description)
                 .bind(Utc::now())
-                .bind(todo.id)
+                .bind(id)
                 .execute(&self.pool)
                 .await
                 .map_err(|err| {
                     tracing::error!("todo_repository.find_all : {}", err.to_string());
-                    ModelError::UpdateError("Todo", err.to_string())
+                    ModelError::Database(err.to_string())
                 })?
                 .rows_affected();
 
         if rows == 0 {
-            return Err(ModelError::NotFound("Todo"));
+            return Err(ModelError::NotFound);
         }
 
         Ok(())
@@ -67,12 +66,12 @@ impl TodoRepository for PostgresTodoRepository {
             .await
             .map_err(|err| {
                 tracing::error!("todo_repository.delete : {}", err.to_string());
-                ModelError::DeleteError("Todo", err.to_string())
+                ModelError::Database(err.to_string())
             })?
             .rows_affected();
 
         if rows == 0 {
-            return Err(ModelError::NotFound("Todo"));
+            return Err(ModelError::NotFound);
         }
 
         Ok(())
@@ -86,7 +85,7 @@ impl TodoRepository for PostgresTodoRepository {
         .await
         .map_err(|err| {
             tracing::error!("todo_repository.find_all : {}", err.to_string());
-            ModelError::NotFound("Todo")
+            ModelError::NotFound
         })?;
 
         Ok(results)
@@ -101,12 +100,12 @@ impl TodoRepository for PostgresTodoRepository {
         .await
         .map_err(|err| {
             tracing::error!("todo_repository.find_by_id : {}", err.to_string());
-            ModelError::NotFound("Todo")
+            ModelError::NotFound
         })?;
 
         match result {
             Some(todo) => Ok(Some(todo)),
-            None => Err(ModelError::NotFound("Todo")),
+            None => Err(ModelError::NotFound),
         }
     }
 }

@@ -4,7 +4,10 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::{domain::shared::error::ModelError, presentation::http::{response::ApiResponse, user::router::UserState}};
+use crate::{
+    application::user::error::UserError,
+    presentation::restapi::{response::ApiResponse, user::router::UserState},
+};
 
 #[axum::debug_handler]
 pub async fn delete_user(
@@ -12,8 +15,8 @@ pub async fn delete_user(
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match state.user.delete_user(id).await {
-        Ok(user) => ApiResponse::Success(user),
-        Err(ModelError::DeleteError(_, _)) => ApiResponse::InternalServerError,
+        Ok(_) => ApiResponse::Success(Option::<()>::None),
+        Err(UserError::NotFound) => ApiResponse::NotFound,
         Err(_) => ApiResponse::InternalServerError,
     }
 }
@@ -22,7 +25,7 @@ pub async fn delete_user(
 pub async fn find_all_user(State(state): State<UserState>) -> impl IntoResponse {
     match state.user.find_all().await {
         Ok(users) => ApiResponse::Success(users),
-        Err(ModelError::NotFound(_)) => ApiResponse::NotFound,
+        Err(UserError::NotFound) => ApiResponse::NotFound,
         Err(_) => ApiResponse::InternalServerError,
     }
 }
@@ -33,8 +36,8 @@ pub async fn find_user_by_id(
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match state.user.find_by_id(id).await {
-        Ok(user) => ApiResponse::Success(user),
-        Err(ModelError::NotFound(_)) => ApiResponse::NotFound,
+        Ok(users) => ApiResponse::Success(users),
+        Err(UserError::NotFound) => ApiResponse::NotFound,
         Err(_) => ApiResponse::InternalServerError,
     }
 }

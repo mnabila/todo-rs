@@ -4,18 +4,22 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.100"
+argon2 = { version = "0.5.3", features = ["default", "password-hash"] }
 async-trait = "0.1.89"
 axum = { version = "0.8.6", features = ["macros"] }
+base64 = "0.22.1"
 chrono = { version = "0.4.42", features = ["serde"] }
 config = "0.15.19"
 dotenvy = "0.15.7"
+hex = "0.4.3"
+hmac = "0.12.1"
+jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 serde = { version = "1.0.228", features = ["derive"] }
-sqlx = { version = "0.8.6", features = ["chrono", "macros", "postgres", "runtime-tokio-rustls", "uuid"] }
+sha2 = "0.10.9"
+sqlx = { version = "0.8.6", features = ["chrono", "macros", "postgres", "runtime-tokio", "runtime-tokio-rustls", "sqlite", "uuid"] }
 thiserror = "2.0.17"
 tokio = { version = "1.48.0", features = ["full"] }
 tracing = "0.1.43"
 tracing-subscriber = { version = "0.3.22", features = ["json"] }
-utoipa = { version = "5.4.0", features = ["axum_extras", "chrono"] }
 uuid = { version = "1.18.1", features = ["serde", "v4"] }
 validator = { version = "0.20.0", features = ["derive"] }

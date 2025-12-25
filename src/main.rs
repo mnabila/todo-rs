@@ -1,6 +1,7 @@
-use crate::{infrastructure::configuration, presentation::http};
-use sqlx::PgPool;
-use tokio::net::TcpListener;
+use crate::{
+    infrastructure::{bootstrap, configuration},
+    presentation::restapi::{self, RouterOption},
+};
 
 mod application;
 mod domain;
@@ -12,37 +13,24 @@ async fn main() {
     // load app configuration
     let conf = configuration::load().unwrap();
 
-    let subscriber = tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .with_target(false)
-        .with_line_number(true)
-        .with_file(true)
-        .json()
-        .finish();
+    // setup logger for this application
+    bootstrap::logger(&conf).unwrap();
 
-    tracing::subscriber::set_global_default(subscriber).unwrap();
+    // setup postgresql pool for this application
+    let pool = bootstrap::sqlx(&conf).await.unwrap();
 
-    let pool = PgPool::connect(&conf.db_uri())
-        .await
-        .expect("Failed to connect to PostgreSQL database");
+    // setup listener for this application
+    let listener = bootstrap::listener(&conf).await.unwrap();
 
-    // let app = infrastructure::::setup(pool);
+    // setup main router
+    let app = restapi::setup(&RouterOption {
+        pool: &pool,
+        config: &conf,
+    });
 
-    let app = http::setup(pool);
-
-    let listener = match TcpListener::bind(conf.server_addr()).await {
-        Ok(listener) => {
-            tracing::info!("Server listening on http://{}", conf.server_addr());
-            listener
-        }
-        Err(err) => {
-            tracing::error!("Failed to bind to {}: {}", conf.server_addr(), err);
-            panic!("Cannot start server");
-        }
-    };
-
+    tracing::debug!("listen on {}", conf.server_addr());
     if let Err(err) = axum::serve(listener, app).await {
-        tracing::error!("Axum server error: {}", err);
+        tracing::error!("axum server error: {}", err);
         panic!("Server crashed");
     }
 }

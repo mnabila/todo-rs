@@ -1,16 +1,22 @@
 use config::{Config, ConfigError, Environment};
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
+#[serde(default)]
 pub struct AppConfig {
     pub server_host: String,
     pub server_port: u32,
+
+    pub log_level: String,
 
     pub db_host: String,
     pub db_port: u32,
     pub db_user: String,
     pub db_password: String,
     pub db_name: String,
+
+    pub jwt_secret: String,
+    pub jwt_duration: i64,
 }
 
 impl AppConfig {

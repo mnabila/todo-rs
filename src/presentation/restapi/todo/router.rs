@@ -1,16 +1,17 @@
 use std::sync::Arc;
 
 use axum::{
-    Router,
+    Extension, Router, middleware,
     routing::{delete, get, post, put},
 };
-use sqlx::PgPool;
 
 use crate::{
     application::todo::usecase::TodoUseCase,
     infrastructure::database::sqlx::todo_repository::PostgresTodoRepository,
-    presentation::http::todo::controller::{
-        create_todo, delete_todo, find_all_todo, find_todo_by_id, update_todo,
+    presentation::restapi::{
+        RouterOption,
+        middleware::jwt_middleware,
+        todo::controller::{create_todo, delete_todo, find_all_todo, find_todo_by_id, update_todo},
     },
 };
 
@@ -19,8 +20,8 @@ pub struct TodoState {
     pub todo: Arc<TodoUseCase<PostgresTodoRepository>>,
 }
 
-pub fn setup(pool: PgPool) -> Router {
-    let repo = PostgresTodoRepository::new(pool);
+pub fn setup(opt: &RouterOption) -> Router {
+    let repo = PostgresTodoRepository::new(opt.pool.clone());
     let usecase = TodoUseCase::new(repo);
 
     let state = TodoState {
@@ -33,5 +34,7 @@ pub fn setup(pool: PgPool) -> Router {
         .route("/{id}", put(update_todo))
         .route("/{id}", delete(delete_todo))
         .route("/{id}", get(find_todo_by_id))
+        .layer(middleware::from_fn(jwt_middleware))
+        .layer(Extension(opt.config.jwt_secret.clone()))
         .with_state(state)
 }
