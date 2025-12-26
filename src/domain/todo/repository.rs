@@ -8,6 +8,7 @@ pub trait TodoRepository: Send + Sync {
     async fn create(&self, todo: &Todo) -> Result<(), ModelError>;
     async fn update(&self, id: Uuid, title: String, description: String) -> Result<(), ModelError>;
     async fn delete(&self, id: Uuid) -> Result<(), ModelError>;
-    async fn find_all(&self) -> Result<Vec<Todo>, ModelError>;
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Todo>, ModelError>;
+    async fn toggle(&self, user_id: Uuid, id: Uuid) -> Result<(), ModelError>;
+    async fn find_all(&self, user_id: Uuid) -> Result<Vec<Todo>, ModelError>;
+    async fn find_by_id(&self, user_id: Uuid, id: Uuid) -> Result<Option<Todo>, ModelError>;
 }

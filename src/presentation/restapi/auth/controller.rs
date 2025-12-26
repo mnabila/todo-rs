@@ -1,8 +1,4 @@
-use axum::{
-    Json,
-    extract::{Request, State},
-    response::IntoResponse,
-};
+use axum::{Extension, Json, extract::State, response::IntoResponse};
 use validator::Validate;
 
 use crate::{
@@ -67,11 +63,10 @@ pub async fn refresh_access_token(
 }
 
 #[axum::debug_handler]
-pub async fn whoami(State(state): State<AuthState>, req: Request) -> impl IntoResponse {
-    let Some(claims) = req.extensions().get::<JwtClaims>() else {
-        return ApiResponse::NotFound;
-    };
-
+pub async fn whoami(
+    State(state): State<AuthState>,
+    Extension(claims): Extension<JwtClaims>,
+) -> impl IntoResponse {
     let Ok(data) = state.auth.whoami(claims.sub).await else {
         return ApiResponse::NotFound;
     };
@@ -80,11 +75,10 @@ pub async fn whoami(State(state): State<AuthState>, req: Request) -> impl IntoRe
 }
 
 #[axum::debug_handler]
-pub async fn logout(State(state): State<AuthState>, req: Request) -> impl IntoResponse {
-    let Some(claims) = req.extensions().get::<JwtClaims>() else {
-        return ApiResponse::NotFound;
-    };
-
+pub async fn logout(
+    State(state): State<AuthState>,
+    Extension(claims): Extension<JwtClaims>,
+) -> impl IntoResponse {
     match state.auth.logout(claims.sub).await {
         Ok(()) => ApiResponse::Success(()),
         Err(err) => match err {

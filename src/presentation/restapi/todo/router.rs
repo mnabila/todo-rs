@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     Extension, Router, middleware,
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post, put},
 };
 
 use crate::{
@@ -11,7 +11,9 @@ use crate::{
     presentation::restapi::{
         RouterOption,
         middleware::jwt_middleware,
-        todo::controller::{create_todo, delete_todo, find_all_todo, find_todo_by_id, update_todo},
+        todo::controller::{
+            create_todo, delete_todo, find_all_todo, find_todo_by_id, toggle_todo, update_todo,
+        },
     },
 };
 
@@ -34,6 +36,7 @@ pub fn setup(opt: &RouterOption) -> Router {
         .route("/{id}", put(update_todo))
         .route("/{id}", delete(delete_todo))
         .route("/{id}", get(find_todo_by_id))
+        .route("/{id}/toggle", patch(toggle_todo))
         .layer(middleware::from_fn(jwt_middleware))
         .layer(Extension(opt.config.jwt_secret.clone()))
         .with_state(state)
