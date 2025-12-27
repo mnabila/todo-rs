@@ -4,78 +4,89 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
+use utoipa::ToSchema;
 
-#[derive(Serialize)]
-pub struct ApiBody<T> {
-    pub code: u16,
+#[derive(Debug, Serialize, ToSchema)]
+pub struct Empty {}
+
+#[derive(Serialize, ToSchema)]
+pub struct ApiResponse<T>
+where
+    T: ToSchema,
+{
+    pub code: String,
     pub message: String,
     pub data: Option<T>,
-}
 
-pub enum ApiResponse<T> {
-    Success(T),
-    UnprocessableEntity(String),
-    InternalServerError,
-    Conflict(String),
-    NotFound,
-    Unauthorized(String),
+    #[serde(skip)]
+    #[schema(ignore)]
+    pub status: StatusCode,
 }
 
 impl<T> IntoResponse for ApiResponse<T>
 where
-    T: Serialize,
+    T: ToSchema + Serialize,
 {
     fn into_response(self) -> Response {
-        match self {
-            ApiResponse::Success(data) => {
-                let status = StatusCode::OK;
-                response(
-                    status,
-                    status.canonical_reason().unwrap_or(status.as_str()),
-                    Some(data),
-                )
-            }
-            ApiResponse::UnprocessableEntity(message) => {
-                let status = StatusCode::UNPROCESSABLE_ENTITY;
-                response(status, &message, Option::<()>::None)
-            }
-            ApiResponse::InternalServerError => {
-                let status = StatusCode::INTERNAL_SERVER_ERROR;
-                response(
-                    status,
-                    status.canonical_reason().unwrap_or(status.as_str()),
-                    Option::<()>::None,
-                )
-            }
-            ApiResponse::NotFound => {
-                let status = StatusCode::NOT_FOUND;
-                response(
-                    status,
-                    status.canonical_reason().unwrap_or(status.as_str()),
-                    Option::<()>::None,
-                )
-            }
-            ApiResponse::Unauthorized(message) => {
-                let status = StatusCode::UNAUTHORIZED;
-                response(status, &message, Option::<()>::None)
-            }
-            ApiResponse::Conflict(message) => {
-                let status = StatusCode::CONFLICT;
-                response(status, &message, Option::<()>::None)
-            }
-        }
+        (self.status, Json(self)).into_response()
     }
 }
 
-fn response<T>(status: StatusCode, message: &str, data: Option<T>) -> Response
+impl<T> ApiResponse<T>
 where
-    T: Serialize,
+    T: ToSchema,
 {
-    let body = ApiBody {
-        code: status.as_u16(),
-        message: message.to_string(),
-        data,
-    };
+    pub fn success(data: Option<T>) -> Self {
+        Self {
+            code: StatusCode::OK.to_string(),
+            message: "success".to_string(),
+            data,
+            status: StatusCode::OK,
+        }
+    }
 
-    (status, Json(body)).into_response()
+    pub fn unauthorized(message: impl Into<String>) -> Self {
+        Self {
+            code: StatusCode::UNAUTHORIZED.to_string(),
+            message: message.into(),
+            data: None,
+            status: StatusCode::UNAUTHORIZED,
+        }
+    }
+
+    pub fn unprocessable_entity(message: impl Into<String>) -> Self {
+        Self {
+            code: StatusCode::UNPROCESSABLE_ENTITY.to_string(),
+            message: message.into(),
+            data: None,
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+        }
+    }
+
+    pub fn conflict(message: impl Into<String>) -> Self {
+        Self {
+            code: StatusCode::CONFLICT.to_string(),
+            message: message.into(),
+            data: None,
+            status: StatusCode::CONFLICT,
+        }
+    }
+
+    pub fn not_found(message: impl Into<String>) -> Self {
+        Self {
+            code: StatusCode::NOT_FOUND.to_string(),
+            message: message.into(),
+            data: None,
+            status: StatusCode::NOT_FOUND,
+        }
+    }
+
+    pub fn general_error() -> Self {
+        Self {
+            code: StatusCode::INTERNAL_SERVER_ERROR.to_string(),
+            message: "general error".to_string(),
+            data: None,
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
 }

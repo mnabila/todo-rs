@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use axum::{
-    middleware, routing::{delete, get, post}, Extension, Router
+    Extension, Router, middleware,
+    routing::{delete, get, post},
 };
 
 use crate::{
@@ -9,7 +10,7 @@ use crate::{
     infrastructure::database::sqlx::user_repository::PostgresUserRepository,
     presentation::restapi::{
         RouterOption,
-        auth::controller::{login, logout, refresh_access_token, register, whoami},
+        auth::controller::{login_with_email, logout, refresh_access_token, register, whoami},
         middleware::jwt_middleware,
     },
 };
@@ -28,7 +29,7 @@ pub fn setup(opt: &RouterOption) -> Router {
     };
 
     let public = Router::new()
-        .route("/login", post(login))
+        .route("/login", post(login_with_email))
         .route("/register", post(register))
         .route("/refresh", post(refresh_access_token));
 

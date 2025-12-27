@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::Validate;
 
 use crate::domain::todo::model::Todo;
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct CreateTodoDto {
     #[serde(default)]
     #[validate(length(min = 1, message = "title is required"))]
@@ -16,7 +17,7 @@ pub struct CreateTodoDto {
     pub description: String,
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct UpdateTodoDto {
     #[serde(default)]
     #[validate(length(min = 1, message = "title is required"))]
@@ -27,7 +28,7 @@ pub struct UpdateTodoDto {
     pub description: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct TodoResponse {
     pub id: Uuid,
     pub title: String,

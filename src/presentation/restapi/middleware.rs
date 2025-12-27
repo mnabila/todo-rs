@@ -18,12 +18,10 @@ pub async fn jwt_middleware(
         .get("Authorization")
         .and_then(|val| val.to_str().ok())
         .and_then(|data| data.strip_prefix("Bearer "))
-        .ok_or(ApiResponse::Unauthorized(
-            "Header authorization not found".to_string(),
-        ))?;
+        .ok_or(ApiResponse::unauthorized("Authorization not found"))?;
 
     let claims = JwtClaims::decode(token.to_string(), &secret)
-        .map_err(|_| ApiResponse::Unauthorized("Access token not valid".to_string()))?;
+        .map_err(|_| ApiResponse::unauthorized("Authorization not found"))?;
 
     request.extensions_mut().insert(claims);
     Ok(next.run(request).await)
