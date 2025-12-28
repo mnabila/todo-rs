@@ -3,7 +3,7 @@ use tokio::io;
 use tokio::net::TcpListener;
 use tracing::subscriber::SetGlobalDefaultError;
 
-use crate::infrastructure::configuration::AppConfig;
+use crate::infrastructure::config::AppConfig;
 
 pub fn logger(conf: &AppConfig) -> Result<(), SetGlobalDefaultError> {
     let level = match conf.log_level.to_ascii_lowercase().as_str() {

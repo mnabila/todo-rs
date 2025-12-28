@@ -1,5 +1,5 @@
 use crate::{
-    infrastructure::{bootstrap, configuration},
+    infrastructure::{bootstrap, config},
     presentation::restapi::{self, RouterOption},
 };
 
@@ -11,7 +11,7 @@ mod presentation;
 #[tokio::main]
 async fn main() {
     // load app configuration
-    let conf = configuration::load().unwrap();
+    let conf = config::load().unwrap();
 
     // setup logger for this application
     bootstrap::logger(&conf).unwrap();

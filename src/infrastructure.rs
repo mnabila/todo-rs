@@ -1,4 +1,4 @@
 pub mod bootstrap;
-pub mod configuration;
+pub mod config;
 pub mod database;
 pub mod security;
