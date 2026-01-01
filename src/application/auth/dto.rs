@@ -7,12 +7,12 @@ use validator::Validate;
 pub struct LoginDto {
     #[serde(default)]
     #[validate(email, length(min = 1, message = "email is required"))]
-    #[schema(example="demo@demo.com")]
+    #[schema(example = "demo@demo.com")]
     pub email: String,
 
     #[serde(default)]
     #[validate(length(min = 1, message = "password is required"))]
-    #[schema(example="password")]
+    #[schema(example = "password")]
     pub password: String,
 }
 
