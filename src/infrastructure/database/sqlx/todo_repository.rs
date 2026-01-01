@@ -56,10 +56,10 @@ impl TodoRepository for PostgresTodoRepository {
             id, user_id, title, description, is_completed, created_at, updated_at
             "#,
         )
-        .bind(&todo.title)
-        .bind(&todo.description)
-        .bind(&todo.updated_at)
-        .bind(&todo.id)
+        .bind(todo.title)
+        .bind(todo.description)
+        .bind(todo.updated_at)
+        .bind(todo.id)
         .fetch_one(&self.pool)
         .await
         .map_err(|err| {

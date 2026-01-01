@@ -38,10 +38,10 @@ impl UserRepository for PostgresUserRepository {
         .await
         .map_err(|err| {
             tracing::error!("user_repository.create : {}", err.to_string());
-            if let Some(db_err) = err.as_database_error() {
-                if db_err.code().as_deref() == Some("23505") {
-                    return ModelError::Conflict;
-                }
+            if let Some(db_err) = err.as_database_error()
+                && db_err.code().as_deref() == Some("23505")
+            {
+                return ModelError::Conflict;
             }
 
             ModelError::Database(err.to_string())
@@ -64,8 +64,8 @@ impl UserRepository for PostgresUserRepository {
         .bind(&user.email)
         .bind(&user.password)
         .bind(&user.token)
-        .bind(&user.updated_at)
-        .bind(&user.id)
+        .bind(user.updated_at)
+        .bind(user.id)
         .fetch_one(&self.pool)
         .await
         .map_err(|err| {

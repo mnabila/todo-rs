@@ -24,6 +24,6 @@ impl Token {
     }
 
     pub fn validate(&self, token: &str) -> bool {
-        return self.encrypted == token;
+        self.encrypted == token
     }
 }

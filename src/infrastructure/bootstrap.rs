@@ -28,9 +28,8 @@ pub fn logger(conf: &AppConfig) -> Result<(), SetGlobalDefaultError> {
 pub async fn sqlx(conf: &AppConfig) -> Result<sqlx::PgPool, sqlx::Error> {
     PgPool::connect(conf.db_uri().as_str())
         .await
-        .map_err(|err| {
+        .inspect_err(|err| {
             tracing::error!("sqlx : {}", err.to_string());
-            err
         })
 }
 
