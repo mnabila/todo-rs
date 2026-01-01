@@ -19,11 +19,9 @@ pub struct CreateTodoDto {
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct UpdateTodoDto {
-    #[serde(default)]
     #[validate(length(min = 1, message = "title is required"))]
     pub title: String,
 
-    #[serde(default)]
     #[validate(length(max = 255))]
     pub description: String,
 }

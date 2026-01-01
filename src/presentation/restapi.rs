@@ -3,7 +3,7 @@ use sqlx::PgPool;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::{infrastructure::configuration::AppConfig, presentation::restapi::swagger::ApiDoc};
+use crate::{infrastructure::config::AppConfig, presentation::restapi::swagger::ApiDoc};
 
 mod auth;
 mod middleware;

@@ -25,3 +25,6 @@ utoipa = { version = "5.4.0", features = ["axum_extras", "chrono", "debug", "uui
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 uuid = { version = "1.18.1", features = ["serde", "v4"] }
 validator = { version = "0.20.0", features = ["derive"] }
+
+[dev-dependencies]
+mockall = "0.14.0"

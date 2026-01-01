@@ -18,7 +18,11 @@ impl<T: TodoRepository> TodoUseCase<T> {
         Self { todo }
     }
 
-    pub async fn create_todo(&self, user_id: Uuid, dto: CreateTodoDto) -> Result<(), TodoError> {
+    pub async fn create_todo(
+        &self,
+        user_id: Uuid,
+        dto: CreateTodoDto,
+    ) -> Result<TodoResponse, TodoError> {
         let todo = Todo {
             id: Uuid::new_v4(),
             user_id,
@@ -29,7 +33,11 @@ impl<T: TodoRepository> TodoUseCase<T> {
             updated_at: Utc::now(),
         };
 
-        self.todo.create(&todo).await.map_err(TodoError::from)
+        self.todo
+            .create(todo)
+            .await
+            .map_err(TodoError::from)
+            .map(TodoResponse::from)
     }
 
     pub async fn update_todo(
@@ -37,18 +45,23 @@ impl<T: TodoRepository> TodoUseCase<T> {
         user_id: Uuid,
         id: Uuid,
         dto: UpdateTodoDto,
-    ) -> Result<(), TodoError> {
-        let todo = self
+    ) -> Result<TodoResponse, TodoError> {
+        let mut todo = self
             .todo
             .find_by_id(user_id, id)
             .await
             .map_err(TodoError::from)?
             .ok_or(TodoError::NotFound)?;
 
+        todo.title = dto.title;
+        todo.description = dto.description;
+        todo.updated_at = Utc::now();
+
         self.todo
-            .update(todo.id, dto.title, dto.description)
+            .update(todo)
             .await
             .map_err(TodoError::from)
+            .map(TodoResponse::from)
     }
 
     pub async fn toggle_todo(&self, user_id: Uuid, id: Uuid) -> Result<(), TodoError> {
@@ -89,5 +102,327 @@ impl<T: TodoRepository> TodoUseCase<T> {
             .await
             .map_err(TodoError::from)
             .map(|todo| todo.map(TodoResponse::from))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    use crate::{
+        application::todo::{
+            dto::{CreateTodoDto, UpdateTodoDto},
+            usecase::TodoUseCase,
+        },
+        domain::{
+            shared::error::ModelError,
+            todo::{model::Todo, repository::MockTodoRepository},
+        },
+    };
+
+    #[tokio::test]
+    async fn create_todo_success() {
+        let mut repo = MockTodoRepository::new();
+
+        repo.expect_create()
+            .return_once(|t| Box::pin(async move { Ok(t) }));
+
+        let usecase = TodoUseCase::new(repo);
+
+        let dto = CreateTodoDto {
+            title: "test".to_string(),
+            description: "hell world".to_string(),
+        };
+
+        let user_id = Uuid::new_v4();
+
+        let result = usecase.create_todo(user_id, dto);
+
+        assert!(result.await.is_ok())
+    }
+
+    #[tokio::test]
+    async fn create_todo_failed() {
+        let mut repo = MockTodoRepository::new();
+
+        repo.expect_create().return_once(|t| {
+            if t.user_id.is_nil() {
+                return Box::pin(async {
+                    Err(ModelError::Database("missing field user_id".to_string()))
+                });
+            }
+
+            Box::pin(async move { Ok(t) })
+        });
+
+        let usecase = TodoUseCase::new(repo);
+
+        let dto = CreateTodoDto {
+            title: "test".to_string(),
+            description: "hello world".to_string(),
+        };
+
+        let user_id = Uuid::nil();
+
+        let result = usecase.create_todo(user_id, dto);
+
+        assert!(result.await.is_err())
+    }
+
+    #[tokio::test]
+    async fn update_todo_success() {
+        let mut repo = MockTodoRepository::new();
+        let todo_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+
+        repo.expect_find_by_id()
+            .withf(move |uid, tid| uid == &user_id && tid == &todo_id)
+            .return_once(|uid, tid| {
+                let todo = Todo {
+                    id: tid,
+                    user_id: uid,
+                    title: "test".to_string(),
+                    description: "hello world".to_string(),
+                    is_completed: false,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                };
+                Box::pin(async move { Ok(Some(todo)) })
+            });
+
+        repo.expect_update()
+            .withf(move |t| t.id == todo_id)
+            .return_once(|t| Box::pin(async move { Ok(t) }));
+
+        let usecase = TodoUseCase::new(repo);
+
+        let dto = UpdateTodoDto {
+            title: "test".to_string(),
+            description: "Lorem ipsum dolor sit amet, qui minim labore adipisicing minim sint cillum sint consectetur cupidatat.".to_string(),
+        };
+
+        let result = usecase.update_todo(user_id, todo_id, dto);
+
+        assert!(result.await.is_ok())
+    }
+
+    #[tokio::test]
+    async fn update_todo_failed() {
+        let mut repo = MockTodoRepository::new();
+        let todo_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+
+        repo.expect_find_by_id()
+            .return_once(|_, _| Box::pin(async move { Err(ModelError::NotFound) }));
+
+        repo.expect_update()
+            .withf(move |t| t.id == todo_id && t.user_id == user_id)
+            .return_once(|t| Box::pin(async move { Ok(t) }));
+
+        let usecase = TodoUseCase::new(repo);
+
+        let dto = UpdateTodoDto {
+            title: "test".to_string(),
+            description: "hello world".to_string(),
+        };
+
+        let result = usecase.update_todo(user_id, todo_id, dto);
+
+        assert!(result.await.is_err())
+    }
+
+    #[tokio::test]
+    async fn delete_todo_success() {
+        let mut repo = MockTodoRepository::new();
+        let todo_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+
+        repo.expect_find_by_id()
+            .withf(move |uid, tid| uid == &user_id && tid == &todo_id)
+            .return_once(|uid, tid| {
+                let todo = Todo {
+                    id: tid,
+                    user_id: uid,
+                    title: "test".to_string(),
+                    description: "hello world".to_string(),
+                    is_completed: false,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                };
+                Box::pin(async move { Ok(Some(todo)) })
+            });
+
+        repo.expect_delete()
+            .withf(move |tid| tid == &todo_id)
+            .return_once(|_| Box::pin(async { Ok(()) }));
+
+        let usecase = TodoUseCase::new(repo);
+
+        let result = usecase.delete_todo(user_id, todo_id);
+
+        assert!(result.await.is_ok())
+    }
+
+    #[tokio::test]
+    async fn delete_todo_failed() {
+        let mut repo = MockTodoRepository::new();
+        let todo_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+
+        repo.expect_find_by_id()
+            .return_once(|_, _| Box::pin(async move { Err(ModelError::NotFound) }));
+
+        repo.expect_delete()
+            .withf(move |tid| tid == &todo_id)
+            .return_once(|_| Box::pin(async { Ok(()) }));
+
+        let usecase = TodoUseCase::new(repo);
+
+        let result = usecase.delete_todo(user_id, todo_id);
+
+        assert!(result.await.is_err())
+    }
+
+    #[tokio::test]
+    async fn find_all_success() {
+        let mut repo = MockTodoRepository::new();
+        let user_id = Uuid::new_v4();
+
+        repo.expect_find_all()
+            .withf(move |uid| uid == &user_id)
+            .return_once(|uid| {
+                let todos = vec![
+                    Todo {
+                        id: Uuid::new_v4(),
+                        user_id: uid,
+                        title: "Buy groceries".to_string(),
+                        description: "Milk, eggs, bread, and fruits".to_string(),
+                        is_completed: false,
+                        created_at: Utc::now(),
+                        updated_at: Utc::now(),
+                    },
+                    Todo {
+                        id: Uuid::new_v4(),
+                        user_id: uid,
+                        title: "Finish project".to_string(),
+                        description: "Complete the Rust backend implementation".to_string(),
+                        is_completed: false,
+                        created_at: Utc::now(),
+                        updated_at: Utc::now(),
+                    },
+                    Todo {
+                        id: Uuid::new_v4(),
+                        user_id: uid,
+                        title: "Call mom".to_string(),
+                        description: "Wish her happy birthday".to_string(),
+                        is_completed: true,
+                        created_at: Utc::now(),
+                        updated_at: Utc::now(),
+                    },
+                ];
+                Box::pin(async move { Ok(todos) })
+            });
+
+        let usecase = TodoUseCase::new(repo);
+
+        let result = usecase.find_all(user_id);
+
+        assert!(result.await.is_ok())
+    }
+
+    #[tokio::test]
+    async fn find_all_failed() {
+        let mut repo = MockTodoRepository::new();
+        let user_id = Uuid::new_v4();
+
+        repo.expect_find_all()
+            .withf(move |uid| uid == &user_id)
+            .return_once(|_| Box::pin(async { Err(ModelError::NotFound) }));
+
+        let usecase = TodoUseCase::new(repo);
+
+        let result = usecase.find_all(user_id);
+
+        assert!(result.await.is_err())
+    }
+
+    #[tokio::test]
+    async fn find_by_id_success() {
+        let mut repo = MockTodoRepository::new();
+        let todo_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+
+        repo.expect_find_by_id()
+            .withf(move |uid, tid| uid == &user_id && tid == &todo_id)
+            .return_once(|uid, tid| {
+                let todo = Todo {
+                    id: tid,
+                    user_id: uid,
+                    title: "test".to_string(),
+                    description: "hello world".to_string(),
+                    is_completed: false,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                };
+                Box::pin(async move { Ok(Some(todo)) })
+            });
+
+        let usecase = TodoUseCase::new(repo);
+
+        let result = usecase.find_by_id(user_id, todo_id);
+
+        assert!(result.await.is_ok())
+    }
+
+    #[tokio::test]
+    async fn find_by_id_failed() {
+        let mut repo = MockTodoRepository::new();
+        let todo_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+
+        repo.expect_find_by_id()
+            .withf(move |uid, tid| uid == &user_id && tid == &todo_id)
+            .return_once(|_, _| Box::pin(async { Err(ModelError::NotFound) }));
+
+        let usecase = TodoUseCase::new(repo);
+
+        let result = usecase.find_by_id(user_id, todo_id);
+
+        assert!(result.await.is_err())
+    }
+
+    #[tokio::test]
+    async fn toggle_todo_success() {
+        let mut repo = MockTodoRepository::new();
+        let todo_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+
+        repo.expect_toggle()
+            .withf(move |uid, tid| uid == &user_id && tid == &todo_id)
+            .return_once(|_, _| Box::pin(async { Ok(()) }));
+
+        let usecase = TodoUseCase::new(repo);
+
+        let result = usecase.toggle_todo(user_id, todo_id);
+
+        assert!(result.await.is_ok())
+    }
+
+    #[tokio::test]
+    async fn toggle_todo_failed() {
+        let mut repo = MockTodoRepository::new();
+        let todo_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+
+        repo.expect_toggle()
+            .withf(move |uid, tid| uid == &user_id && tid == &todo_id)
+            .return_once(|_, _| Box::pin(async { Err(ModelError::NotFound) }));
+
+        let usecase = TodoUseCase::new(repo);
+
+        let result = usecase.toggle_todo(user_id, todo_id);
+
+        assert!(result.await.is_err())
     }
 }

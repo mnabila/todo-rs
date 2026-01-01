@@ -4,9 +4,10 @@ use uuid::Uuid;
 use crate::domain::{shared::error::ModelError, todo::model::Todo};
 
 #[async_trait]
+#[cfg_attr(test, mockall::automock)]
 pub trait TodoRepository: Send + Sync {
-    async fn create(&self, todo: &Todo) -> Result<(), ModelError>;
-    async fn update(&self, id: Uuid, title: String, description: String) -> Result<(), ModelError>;
+    async fn create(&self, todo: Todo) -> Result<Todo, ModelError>;
+    async fn update(&self, todo: Todo) -> Result<Todo, ModelError>;
     async fn delete(&self, id: Uuid) -> Result<(), ModelError>;
     async fn toggle(&self, user_id: Uuid, id: Uuid) -> Result<(), ModelError>;
     async fn find_all(&self, user_id: Uuid) -> Result<Vec<Todo>, ModelError>;

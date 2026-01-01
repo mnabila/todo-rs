@@ -39,7 +39,7 @@ pub async fn register(
     }
 
     match state.auth.register(dto).await {
-        Ok(()) => ApiResponse::success(None),
+        Ok(_) => ApiResponse::success(None),
         Err(AuthError::Conflict) => ApiResponse::conflict("User already registed"),
         Err(_) => ApiResponse::general_error(),
     }
@@ -68,7 +68,7 @@ pub async fn login_with_email(
 
     match state.auth.login(dto).await {
         Ok(data) => ApiResponse::<AuthResponse>::success(Some(data)),
-        Err(AuthError::PasswordMissmatch) => ApiResponse::unauthorized("password missmatch"),
+        Err(AuthError::InvalidCredentials) => ApiResponse::unauthorized("password missmatch"),
         Err(_) => ApiResponse::general_error(),
     }
 }

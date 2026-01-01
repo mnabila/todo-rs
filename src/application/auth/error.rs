@@ -4,7 +4,7 @@ use crate::domain::shared::error::ModelError;
 pub enum AuthError {
     NotFound,
     Conflict,
-    PasswordMissmatch,
+    InvalidCredentials,
     TokenExpired,
     GeneralError,
 }
