@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use sqlx::postgres::PgPoolOptions;
 use tokio::io;
 use tokio::net::TcpListener;
@@ -27,11 +29,11 @@ pub fn logger(conf: &AppConfig) -> Result<(), SetGlobalDefaultError> {
 
 pub async fn sqlx(conf: &AppConfig) -> Result<sqlx::PgPool, sqlx::Error> {
     PgPoolOptions::new()
-        .max_connections(conf.db_max_connections)
-        .min_connections(conf.db_min_connections)
-        .acquire_timeout(std::time::Duration::from_secs(30))
-        .idle_timeout(std::time::Duration::from_secs(600))
-        .max_lifetime(std::time::Duration::from_secs(1800))
+        .min_connections(1)
+        .max_connections((num_cpus::get() * 2).try_into().unwrap_or(2))
+        .acquire_timeout(Duration::from_secs(1))
+        .idle_timeout(Duration::from_secs(300))
+        .max_lifetime(Duration::from_secs(1800))
         .connect(conf.db_uri().as_str())
         .await
         .inspect_err(|err| {

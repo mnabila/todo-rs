@@ -14,6 +14,7 @@ dotenvy = "0.15.7"
 hex = "0.4.3"
 hmac = "0.12.1"
 jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
+num_cpus = "1.17.0"
 serde = { version = "1.0.228", features = ["derive"] }
 sha2 = "0.10.9"
 sqlx = { version = "0.8.6", features = ["chrono", "postgres", "runtime-tokio", "runtime-tokio-rustls", "uuid"] }
