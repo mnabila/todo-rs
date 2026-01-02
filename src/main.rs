@@ -29,6 +29,7 @@ async fn main() {
     });
 
     tracing::debug!("listen on {}", conf.server_addr());
+
     if let Err(err) = axum::serve(listener, app).await {
         tracing::error!("axum server error: {}", err);
         panic!("Server crashed");

@@ -38,7 +38,7 @@ where
 {
     pub fn success(data: Option<T>) -> Self {
         Self {
-            code: StatusCode::OK.to_string(),
+            code: "20000".to_string(),
             message: "success".to_string(),
             data,
             status: StatusCode::OK,
@@ -47,7 +47,7 @@ where
 
     pub fn unauthorized(message: impl Into<String>) -> Self {
         Self {
-            code: StatusCode::UNAUTHORIZED.to_string(),
+            code: "40100".to_string(),
             message: message.into(),
             data: None,
             status: StatusCode::UNAUTHORIZED,
@@ -56,7 +56,7 @@ where
 
     pub fn unprocessable_entity(message: impl Into<String>) -> Self {
         Self {
-            code: StatusCode::UNPROCESSABLE_ENTITY.to_string(),
+            code: "42200".to_string(),
             message: message.into(),
             data: None,
             status: StatusCode::UNPROCESSABLE_ENTITY,
@@ -65,7 +65,7 @@ where
 
     pub fn conflict(message: impl Into<String>) -> Self {
         Self {
-            code: StatusCode::CONFLICT.to_string(),
+            code: "40900".to_string(),
             message: message.into(),
             data: None,
             status: StatusCode::CONFLICT,
@@ -74,7 +74,7 @@ where
 
     pub fn not_found(message: impl Into<String>) -> Self {
         Self {
-            code: StatusCode::NOT_FOUND.to_string(),
+            code: "40400".to_string(),
             message: message.into(),
             data: None,
             status: StatusCode::NOT_FOUND,
@@ -83,7 +83,7 @@ where
 
     pub fn general_error() -> Self {
         Self {
-            code: StatusCode::INTERNAL_SERVER_ERROR.to_string(),
+            code: "50000".to_string(),
             message: "general error".to_string(),
             data: None,
             status: StatusCode::INTERNAL_SERVER_ERROR,
