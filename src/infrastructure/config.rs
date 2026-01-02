@@ -14,6 +14,8 @@ pub struct AppConfig {
     pub db_user: String,
     pub db_password: String,
     pub db_name: String,
+    pub db_max_connections: u32,
+    pub db_min_connections: u32,
 
     pub jwt_secret: String,
     pub jwt_duration: i64,

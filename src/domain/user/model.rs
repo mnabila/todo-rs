@@ -1,7 +1,4 @@
-use argon2::{
-    Argon2, PasswordHash, PasswordVerifier,
-    password_hash::{Error, PasswordHasher, SaltString, rand_core::OsRng},
-};
+use bcrypt::BcryptError;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use uuid::Uuid;
@@ -18,29 +15,11 @@ pub struct User {
 }
 
 impl User {
-    pub fn hash_password(password: &str) -> Result<String, Error> {
-        let salt = SaltString::generate(&mut OsRng);
-
-        let argon2 = Argon2::default();
-
-        let hash = argon2
-            .hash_password(password.as_bytes(), &salt)?
-            .to_string();
-
-        Ok(hash)
+    pub fn hash_password(password: &str) -> Result<String, BcryptError> {
+        bcrypt::hash(password, 6)
     }
 
     pub fn verify_password(&self, password: String) -> bool {
-        let hash = PasswordHash::new(&self.password);
-
-        match hash {
-            Err(err) => {
-                tracing::error!("failed verify password : {}", err);
-                false
-            }
-            Ok(data) => Argon2::default()
-                .verify_password(password.as_bytes(), &data)
-                .is_ok(),
-        }
+        bcrypt::verify(password, self.password.as_str()).is_ok()
     }
 }

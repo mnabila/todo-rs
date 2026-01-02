@@ -25,7 +25,7 @@ impl UserRepository for PostgresUserRepository {
             INSERT INTO users (id, name, email, password, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING 
-            id, name, email, password, created_at, updated_at
+            id, name, email, password, token, created_at, updated_at
             "#,
         )
         .bind(user.id)
@@ -57,7 +57,7 @@ impl UserRepository for PostgresUserRepository {
             SET name=$1, email=$2, password=$3, token=$4, updated_at=$5 
             WHERE id =$6
             RETURNING 
-            id, name, email, password, created_at, updated_at
+            id, name, email, password, token, created_at, updated_at
             "#,
         )
         .bind(&user.name)

@@ -1,4 +1,4 @@
-use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 use tokio::io;
 use tokio::net::TcpListener;
 use tracing::subscriber::SetGlobalDefaultError;
@@ -26,10 +26,16 @@ pub fn logger(conf: &AppConfig) -> Result<(), SetGlobalDefaultError> {
 }
 
 pub async fn sqlx(conf: &AppConfig) -> Result<sqlx::PgPool, sqlx::Error> {
-    PgPool::connect(conf.db_uri().as_str())
+    PgPoolOptions::new()
+        .max_connections(conf.db_max_connections)
+        .min_connections(conf.db_min_connections)
+        .acquire_timeout(std::time::Duration::from_secs(30))
+        .idle_timeout(std::time::Duration::from_secs(600))
+        .max_lifetime(std::time::Duration::from_secs(1800))
+        .connect(conf.db_uri().as_str())
         .await
         .inspect_err(|err| {
-            tracing::error!("sqlx : {}", err.to_string());
+            tracing::error!("Failed to create database pool: {}", err);
         })
 }
 
