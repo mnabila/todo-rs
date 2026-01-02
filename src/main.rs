@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     infrastructure::{bootstrap, config},
     presentation::restapi::{self, RouterOption},
@@ -11,21 +13,21 @@ mod presentation;
 #[tokio::main]
 async fn main() {
     // load app configuration
-    let conf = config::load().unwrap();
+    let conf = Arc::new(config::load().unwrap());
 
     // setup logger for this application
     bootstrap::logger(&conf).unwrap();
 
     // setup postgresql pool for this application
-    let pool = bootstrap::sqlx(&conf).await.unwrap();
+    let pool = Arc::new(bootstrap::sqlx(&conf).await.unwrap());
 
     // setup listener for this application
     let listener = bootstrap::listener(&conf).await.unwrap();
 
     // setup main router
-    let app = restapi::setup(&RouterOption {
-        pool: &pool,
-        config: &conf,
+    let app = restapi::setup_routers(&RouterOption {
+        pool: pool,
+        config: conf.clone(),
     });
 
     tracing::debug!("listen on {}", conf.server_addr());

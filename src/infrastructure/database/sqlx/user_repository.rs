@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -7,12 +9,13 @@ use crate::domain::{
     user::{model::User, repository::UserRepository},
 };
 
+#[derive(Clone)]
 pub struct PostgresUserRepository {
-    pub pool: PgPool,
+    pub pool: Arc<PgPool>,
 }
 
 impl PostgresUserRepository {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
 }
@@ -24,7 +27,7 @@ impl UserRepository for PostgresUserRepository {
             r#"
             INSERT INTO users (id, name, email, password, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING 
+            RETURNING
             id, name, email, password, created_at, updated_at
             "#,
         )
@@ -34,7 +37,7 @@ impl UserRepository for PostgresUserRepository {
         .bind(user.password)
         .bind(user.created_at)
         .bind(user.updated_at)
-        .fetch_one(&self.pool)
+        .fetch_one(&*self.pool)
         .await
         .map_err(|err| {
             tracing::error!("user_repository.create : {}", err.to_string());
@@ -53,11 +56,11 @@ impl UserRepository for PostgresUserRepository {
     async fn update(&self, user: &User) -> Result<User, ModelError> {
         let updated = sqlx::query_as::<_, User>(
             r#"
-            UPDATE users 
-            SET name=$1, email=$2, password=$3, token=$4, updated_at=$5 
+            UPDATE users
+            SET name=$1, email=$2, password=$3, token=$4, updated_at=$5
             WHERE id =$6
-            RETURNING 
-            id, name, email, password, created_at, updated_at
+            RETURNING
+            id, name, email, password, token, created_at, updated_at
             "#,
         )
         .bind(&user.name)
@@ -66,7 +69,7 @@ impl UserRepository for PostgresUserRepository {
         .bind(&user.token)
         .bind(user.updated_at)
         .bind(user.id)
-        .fetch_one(&self.pool)
+        .fetch_one(&*self.pool)
         .await
         .map_err(|err| {
             tracing::error!("user_repository.update : {}", err.to_string());
@@ -79,7 +82,7 @@ impl UserRepository for PostgresUserRepository {
     async fn delete(&self, id: Uuid) -> Result<(), ModelError> {
         let rows = sqlx::query("DELETE FROM users WHERE id = $1")
             .bind(id)
-            .execute(&self.pool)
+            .execute(&*self.pool)
             .await
             .map_err(|err| {
                 tracing::error!("user_repository.delete : {}", err.to_string());
@@ -98,7 +101,7 @@ impl UserRepository for PostgresUserRepository {
         let results = sqlx::query_as::<_, User>(
             "SELECT id, name, email, password, token, created_at, updated_at FROM users",
         )
-        .fetch_all(&self.pool)
+        .fetch_all(&*self.pool)
         .await
         .map_err(|err| {
             tracing::error!("user_repository.find_all : {}", err.to_string());
@@ -113,7 +116,7 @@ impl UserRepository for PostgresUserRepository {
             "SELECT id, name, email, password, token, created_at, updated_at FROM users WHERE id = $1",
         )
         .bind(id)
-        .fetch_optional(&self.pool)
+        .fetch_optional(&*self.pool)
         .await
         .map_err(|err| {
             tracing::error!("user_repository.find_by_id : {}", err.to_string());
@@ -131,7 +134,7 @@ impl UserRepository for PostgresUserRepository {
             "SELECT id, name, email, password, token, created_at, updated_at FROM users WHERE email = $1",
         )
         .bind(email)
-        .fetch_optional(&self.pool)
+        .fetch_optional(&*self.pool)
         .await
         .map_err(|err| {
             tracing::error!("user_repository.find_by_email : {}", err.to_string());
@@ -149,7 +152,7 @@ impl UserRepository for PostgresUserRepository {
             "SELECT id, name, email, password, token, created_at, updated_at FROM users WHERE token = $1",
         )
         .bind(token)
-        .fetch_optional(&self.pool)
+        .fetch_optional(&*self.pool)
         .await
         .map_err(|err| {
             tracing::error!("user_repository.find_by_token : {}", err.to_string());

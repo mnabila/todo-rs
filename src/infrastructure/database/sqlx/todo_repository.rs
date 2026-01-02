@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -8,11 +10,11 @@ use crate::domain::{
 };
 
 pub struct PostgresTodoRepository {
-    pub pool: PgPool,
+    pub pool: Arc<PgPool>,
 }
 
 impl PostgresTodoRepository {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
 }
@@ -22,8 +24,8 @@ impl TodoRepository for PostgresTodoRepository {
     async fn create(&self, todo: Todo) -> Result<Todo, ModelError> {
         let created = sqlx::query_as::<_, Todo>(
             r#"
-            INSERT INTO 
-            todos(id, user_id, title, description, is_completed, created_at, updated_at) 
+            INSERT INTO
+            todos(id, user_id, title, description, is_completed, created_at, updated_at)
             VALUES ($1,$2,$3,$4,$5,$6,$7)
             RETURNING
             id, user_id, title, description, is_completed, created_at, updated_at
@@ -36,7 +38,7 @@ impl TodoRepository for PostgresTodoRepository {
         .bind(todo.is_completed)
         .bind(todo.created_at)
         .bind(todo.updated_at)
-        .fetch_one(&self.pool)
+        .fetch_one(&*self.pool)
         .await
         .map_err(|err| {
             tracing::error!("todo_repository.find_all : {}", err.to_string());
@@ -50,7 +52,7 @@ impl TodoRepository for PostgresTodoRepository {
         let updated = sqlx::query_as::<_, Todo>(
             r#"
             UPDATEtodos
-            SET 
+            SET
             title=$1, description=$2, updated_at=$3 WHERE id=$4",
             RETURNING
             id, user_id, title, description, is_completed, created_at, updated_at
@@ -60,7 +62,7 @@ impl TodoRepository for PostgresTodoRepository {
         .bind(todo.description)
         .bind(todo.updated_at)
         .bind(todo.id)
-        .fetch_one(&self.pool)
+        .fetch_one(&*self.pool)
         .await
         .map_err(|err| {
             tracing::error!("todo_repository.find_all : {}", err.to_string());
@@ -73,7 +75,7 @@ impl TodoRepository for PostgresTodoRepository {
     async fn delete(&self, id: Uuid) -> Result<(), ModelError> {
         let rows = sqlx::query("DELETE FROM todos WHERE id = $1")
             .bind(id)
-            .execute(&self.pool)
+            .execute(&*self.pool)
             .await
             .map_err(|err| {
                 tracing::error!("todo_repository.delete : {}", err.to_string());
@@ -94,7 +96,7 @@ impl TodoRepository for PostgresTodoRepository {
         )
         .bind(user_id)
         .bind(id)
-        .execute(&self.pool)
+        .execute(&*self.pool)
         .await
         .map_err(|err| {
             tracing::error!("todo_repository.toggle : {}", err.to_string());
@@ -114,7 +116,7 @@ impl TodoRepository for PostgresTodoRepository {
             "SELECT id, user_id, title, description, is_completed, created_at, updated_at FROM todos WHERE user_id=$1",
         )
         .bind(user_id)
-        .fetch_all(&self.pool)
+        .fetch_all(&*self.pool)
         .await
         .map_err(|err| {
             tracing::error!("todo_repository.find_all : {}", err.to_string());
@@ -130,7 +132,7 @@ impl TodoRepository for PostgresTodoRepository {
         )
         .bind(id)
         .bind(user_id)
-        .fetch_optional(&self.pool)
+        .fetch_optional(&*self.pool)
         .await
         .map_err(|err| {
             tracing::error!("todo_repository.find_by_id : {}", err.to_string());

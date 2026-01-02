@@ -20,12 +20,9 @@ pub struct UserState {
     pub user_usecase: Arc<UserUseCase<PostgresUserRepository>>,
 }
 
-pub fn setup(opt: &RouterOption) -> Router {
-    let repo = PostgresUserRepository::new(opt.pool.clone());
-    let usecase = UserUseCase::new(repo);
-
+pub fn setup(opt: &RouterOption, user_usecase: Arc<UserUseCase<PostgresUserRepository>>) -> Router {
     let state = UserState {
-        user_usecase: Arc::new(usecase),
+        user_usecase: user_usecase,
     };
 
     Router::new()

@@ -20,12 +20,9 @@ pub struct AuthState {
     pub auth_usecase: Arc<AuthUseCase<PostgresUserRepository>>,
 }
 
-pub fn setup(opt: &RouterOption) -> Router {
-    let user = PostgresUserRepository::new(opt.pool.clone());
-    let usecase = AuthUseCase::new(user, opt.config.jwt_secret.clone(), opt.config.jwt_duration);
-
+pub fn setup(opt: &RouterOption, auth_usecase: Arc<AuthUseCase<PostgresUserRepository>>) -> Router {
     let state = AuthState {
-        auth_usecase: Arc::new(usecase),
+        auth_usecase: auth_usecase,
     };
 
     let public = Router::new()
