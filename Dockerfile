@@ -5,6 +5,12 @@ FROM rust:1.90-slim-bookworm AS builder
 
 RUN USER=root cargo new --bin todo
 
+# Install curl for download swagger ui
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+  && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+
+
 WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./

@@ -16,7 +16,7 @@ hmac = "0.12.1"
 jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 serde = { version = "1.0.228", features = ["derive"] }
 sha2 = "0.10.9"
-sqlx = { version = "0.8.6", features = ["chrono", "macros", "postgres", "runtime-tokio", "runtime-tokio-rustls", "sqlite", "uuid"] }
+sqlx = { version = "0.8.6", features = ["chrono", "postgres", "runtime-tokio", "runtime-tokio-rustls", "uuid"] }
 thiserror = "2.0.17"
 tokio = { version = "1.48.0", features = ["full"] }
 tracing = "0.1.43"
@@ -28,3 +28,10 @@ validator = { version = "0.20.0", features = ["derive"] }
 
 [dev-dependencies]
 mockall = "0.14.0"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
