@@ -17,7 +17,7 @@ use crate::{
 
 #[derive(Clone)]
 pub struct AuthState {
-    pub auth: Arc<AuthUseCase<PostgresUserRepository>>,
+    pub auth_usecase: Arc<AuthUseCase<PostgresUserRepository>>,
 }
 
 pub fn setup(opt: &RouterOption) -> Router {
@@ -25,7 +25,7 @@ pub fn setup(opt: &RouterOption) -> Router {
     let usecase = AuthUseCase::new(user, opt.config.jwt_secret.clone(), opt.config.jwt_duration);
 
     let state = AuthState {
-        auth: Arc::new(usecase),
+        auth_usecase: Arc::new(usecase),
     };
 
     let public = Router::new()

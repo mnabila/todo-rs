@@ -8,7 +8,7 @@ use validator::Validate;
 
 use crate::{
     application::todo::{
-        dto::{CreateTodoDto, TodoResponse, UpdateTodoDto},
+        dto::{CreateTodoRequest, TodoResponse, UpdateTodoRequest},
         error::TodoError,
     },
     infrastructure::security::jwt::JwtClaims,
@@ -21,7 +21,7 @@ use crate::{
 #[utoipa::path(
     post,
     path = "/todos",
-    request_body = CreateTodoDto,
+    request_body = CreateTodoRequest,
     responses(
         (status = 200, description = "Todo created successfully", body = ApiResponse<Empty>),
         (status = 422, description = "Validation error in request body", body = ApiResponse<Empty>),
@@ -34,13 +34,13 @@ use crate::{
 pub async fn create_todo(
     State(state): State<TodoState>,
     Extension(claims): Extension<JwtClaims>,
-    Json(dto): Json<CreateTodoDto>,
+    Json(dto): Json<CreateTodoRequest>,
 ) -> impl IntoResponse {
     if let Err(err) = dto.validate() {
         return ApiResponse::<Empty>::unprocessable_entity(err.to_string());
     }
 
-    match state.todo.create_todo(claims.sub, dto).await {
+    match state.todo_usecase.create_todo(claims.sub, dto).await {
         Ok(_) => ApiResponse::success(None),
         Err(_) => ApiResponse::general_error(),
     }
@@ -52,7 +52,7 @@ pub async fn create_todo(
     params(
         ("id"=Uuid, Path, description = "Unique identifier for the todo item"),
     ),
-    request_body = UpdateTodoDto,
+    request_body = UpdateTodoRequest,
     responses(
         (status = 200, description = "Todo updated successfully", body = ApiResponse<Empty>),
         (status = 400, description = "Validation error in request body", body = ApiResponse<Empty>),
@@ -69,13 +69,13 @@ pub async fn update_todo(
     State(state): State<TodoState>,
     Extension(claims): Extension<JwtClaims>,
     Path(id): Path<Uuid>,
-    Json(dto): Json<UpdateTodoDto>,
+    Json(dto): Json<UpdateTodoRequest>,
 ) -> impl IntoResponse {
     if let Err(err) = dto.validate() {
         return ApiResponse::unprocessable_entity(err.to_string());
     }
 
-    match state.todo.update_todo(claims.sub, id, dto).await {
+    match state.todo_usecase.update_todo(claims.sub, id, dto).await {
         Ok(_) => ApiResponse::<Empty>::success(None),
         Err(_) => ApiResponse::general_error(),
     }
@@ -102,7 +102,7 @@ pub async fn delete_todo(
     Extension(claims): Extension<JwtClaims>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.todo.delete_todo(claims.sub, id).await {
+    match state.todo_usecase.delete_todo(claims.sub, id).await {
         Ok(_) => ApiResponse::<Empty>::success(None),
         Err(TodoError::NotFound) => ApiResponse::not_found("todo not found"),
         Err(_) => ApiResponse::general_error(),
@@ -126,7 +126,7 @@ pub async fn find_all_todo(
     State(state): State<TodoState>,
     Extension(claims): Extension<JwtClaims>,
 ) -> impl IntoResponse {
-    match state.todo.find_all(claims.sub).await {
+    match state.todo_usecase.find_all(claims.sub).await {
         Ok(todos) => ApiResponse::<Vec<TodoResponse>>::success(Some(todos)),
         Err(TodoError::NotFound) => ApiResponse::not_found("todo not found"),
         Err(_) => ApiResponse::general_error(),
@@ -154,7 +154,7 @@ pub async fn find_todo_by_id(
     Extension(claims): Extension<JwtClaims>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.todo.find_by_id(claims.sub, id).await {
+    match state.todo_usecase.find_by_id(claims.sub, id).await {
         Ok(todo) => ApiResponse::<TodoResponse>::success(todo),
         Err(TodoError::NotFound) => ApiResponse::not_found("todo not_found"),
         Err(_) => ApiResponse::general_error(),
@@ -182,7 +182,7 @@ pub async fn toggle_todo(
     Extension(claims): Extension<JwtClaims>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.todo.toggle_todo(claims.sub, id).await {
+    match state.todo_usecase.toggle_todo(claims.sub, id).await {
         Ok(_) => ApiResponse::<Empty>::success(None),
         Err(TodoError::NotFound) => ApiResponse::not_found("todo not found"),
         Err(_) => ApiResponse::general_error(),

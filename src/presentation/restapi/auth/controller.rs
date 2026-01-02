@@ -4,7 +4,7 @@ use validator::Validate;
 use crate::{
     application::{
         auth::{
-            dto::{AuthResponse, LoginDto, RefreshTokenDto, RegisterDto},
+            dto::{AuthResponse, LoginRequest, RefreshTokenRequest, RegisterRequest},
             error::AuthError,
         },
         user::dto::UserResponse,
@@ -19,7 +19,7 @@ use crate::{
 #[utoipa::path(
     post,
     path = "/auth/register",
-    request_body = RegisterDto,
+    request_body = RegisterRequest,
     responses(
         (status = 200, description = "Registration successful", body = ApiResponse<Empty>),
         (status = 409, description = "User already registered", body = ApiResponse<Empty>),
@@ -31,14 +31,14 @@ use crate::{
 #[axum::debug_handler]
 pub async fn register(
     State(state): State<AuthState>,
-    Json(dto): Json<RegisterDto>,
+    Json(dto): Json<RegisterRequest>,
 ) -> impl IntoResponse {
     if let Err(err) = dto.validate() {
         tracing::error!("failed validate request : {}", err.to_string());
         return ApiResponse::<Empty>::unprocessable_entity(err.to_string());
     }
 
-    match state.auth.register(dto).await {
+    match state.auth_usecase.register(dto).await {
         Ok(_) => ApiResponse::success(None),
         Err(AuthError::Conflict) => ApiResponse::conflict("User already registed"),
         Err(_) => ApiResponse::general_error(),
@@ -48,7 +48,7 @@ pub async fn register(
 #[utoipa::path(
     post,
     path = "/auth/login",
-    request_body = LoginDto,
+    request_body = LoginRequest,
     responses(
         (status = 200, description = "Login successful", body = ApiResponse<AuthResponse>),
         (status = 401, description = "Invalid credentials", body = ApiResponse<Empty>),
@@ -60,13 +60,13 @@ pub async fn register(
 #[axum::debug_handler]
 pub async fn login_with_email(
     State(state): State<AuthState>,
-    Json(dto): Json<LoginDto>,
+    Json(dto): Json<LoginRequest>,
 ) -> impl IntoResponse {
     if let Err(err) = dto.validate() {
         return ApiResponse::unprocessable_entity(err.to_string());
     }
 
-    match state.auth.login(dto).await {
+    match state.auth_usecase.login(dto).await {
         Ok(data) => ApiResponse::<AuthResponse>::success(Some(data)),
         Err(AuthError::InvalidCredentials) => ApiResponse::unauthorized("password missmatch"),
         Err(_) => ApiResponse::general_error(),
@@ -76,7 +76,7 @@ pub async fn login_with_email(
 #[utoipa::path(
     post,
     path = "/auth/refresh",
-    request_body = RefreshTokenDto,
+    request_body = RefreshTokenRequest,
     responses(
         (status = 200, description = "Successfully refreshed access token", body = ApiResponse<Option<AuthResponse>>),
         (status = 401, description = "Unauthorized - token expired or invalid", body = ApiResponse<Empty>),
@@ -88,13 +88,13 @@ pub async fn login_with_email(
 #[axum::debug_handler]
 pub async fn refresh_access_token(
     State(state): State<AuthState>,
-    Json(dto): Json<RefreshTokenDto>,
+    Json(dto): Json<RefreshTokenRequest>,
 ) -> impl IntoResponse {
     if let Err(err) = dto.validate() {
         return ApiResponse::unprocessable_entity(err.to_string());
     }
 
-    match state.auth.refresh_access_token(dto).await {
+    match state.auth_usecase.refresh_access_token(dto).await {
         Ok(data) => ApiResponse::<AuthResponse>::success(Some(data)),
         Err(err) => match err {
             AuthError::TokenExpired | AuthError::NotFound => {
@@ -121,7 +121,7 @@ pub async fn whoami(
     State(state): State<AuthState>,
     Extension(claims): Extension<JwtClaims>,
 ) -> impl IntoResponse {
-    let Ok(data) = state.auth.whoami(claims.sub).await else {
+    let Ok(data) = state.auth_usecase.whoami(claims.sub).await else {
         return ApiResponse::not_found("User not found");
     };
 
@@ -144,7 +144,7 @@ pub async fn logout(
     State(state): State<AuthState>,
     Extension(claims): Extension<JwtClaims>,
 ) -> impl IntoResponse {
-    match state.auth.logout(claims.sub).await {
+    match state.auth_usecase.logout(claims.sub).await {
         Ok(()) => ApiResponse::<Empty>::success(None),
         Err(err) => match err {
             AuthError::NotFound => ApiResponse::unauthorized("Token already expired"),

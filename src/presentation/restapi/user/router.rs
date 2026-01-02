@@ -17,7 +17,7 @@ use crate::{
 
 #[derive(Clone)]
 pub struct UserState {
-    pub user: Arc<UserUseCase<PostgresUserRepository>>,
+    pub user_usecase: Arc<UserUseCase<PostgresUserRepository>>,
 }
 
 pub fn setup(opt: &RouterOption) -> Router {
@@ -25,7 +25,7 @@ pub fn setup(opt: &RouterOption) -> Router {
     let usecase = UserUseCase::new(repo);
 
     let state = UserState {
-        user: Arc::new(usecase),
+        user_usecase: Arc::new(usecase),
     };
 
     Router::new()

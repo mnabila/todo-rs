@@ -7,7 +7,7 @@ use validator::Validate;
 use crate::domain::todo::model::Todo;
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
-pub struct CreateTodoDto {
+pub struct CreateTodoRequest {
     #[serde(default)]
     #[validate(length(min = 1, message = "title is required"))]
     pub title: String,
@@ -18,7 +18,7 @@ pub struct CreateTodoDto {
 }
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
-pub struct UpdateTodoDto {
+pub struct UpdateTodoRequest {
     #[validate(length(min = 1, message = "title is required"))]
     pub title: String,
 

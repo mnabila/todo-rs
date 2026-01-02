@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::{
     application::{
         auth::{
-            dto::{AuthResponse, LoginDto, RefreshTokenDto, RegisterDto},
+            dto::{AuthResponse, LoginRequest, RefreshTokenRequest, RegisterRequest},
             error::AuthError,
         },
         user::dto::UserResponse,
@@ -14,21 +14,21 @@ use crate::{
 };
 
 pub struct AuthUseCase<T: UserRepository + Send + Sync> {
-    user: T,
+    user_repository: T,
     jwt_secret: String,
     jwt_duration: Duration,
 }
 
 impl<T: UserRepository> AuthUseCase<T> {
-    pub fn new(user: T, jwt_secret: String, jwt_duration: i64) -> Self {
+    pub fn new(repo: T, jwt_secret: String, jwt_duration: i64) -> Self {
         Self {
-            user,
+            user_repository: repo,
             jwt_secret,
             jwt_duration: Duration::minutes(jwt_duration),
         }
     }
 
-    pub async fn register(&self, dto: RegisterDto) -> Result<User, AuthError> {
+    pub async fn register(&self, dto: RegisterRequest) -> Result<User, AuthError> {
         let password = User::hash_password(dto.password.as_str()).map_err(|err| {
             tracing::error!("failed hash password : {}", err);
             AuthError::GeneralError
@@ -44,12 +44,15 @@ impl<T: UserRepository> AuthUseCase<T> {
             updated_at: Utc::now(),
         };
 
-        self.user.create(user).await.map_err(AuthError::from)
+        self.user_repository
+            .create(user)
+            .await
+            .map_err(AuthError::from)
     }
 
-    pub async fn login(&self, dto: LoginDto) -> Result<AuthResponse, AuthError> {
+    pub async fn login(&self, dto: LoginRequest) -> Result<AuthResponse, AuthError> {
         let mut user = match self
-            .user
+            .user_repository
             .find_by_email(&dto.email)
             .await
             .map_err(AuthError::from)?
@@ -68,7 +71,7 @@ impl<T: UserRepository> AuthUseCase<T> {
         user.token = Some(refresh_token.encrypted);
         user.updated_at = Utc::now();
 
-        self.user
+        self.user_repository
             .update(&user)
             .await
             .map_err(|_| AuthError::GeneralError)?;
@@ -87,13 +90,13 @@ impl<T: UserRepository> AuthUseCase<T> {
 
     pub async fn refresh_access_token(
         &self,
-        dto: RefreshTokenDto,
+        dto: RefreshTokenRequest,
     ) -> Result<AuthResponse, AuthError> {
         let refresh_token =
             Token::new(&self.jwt_secret, &dto.token).map_err(|_| AuthError::GeneralError)?;
 
         let user = self
-            .user
+            .user_repository
             .find_by_token(&refresh_token.encrypted)
             .await?
             .ok_or(AuthError::NotFound)?;
@@ -124,7 +127,7 @@ impl<T: UserRepository> AuthUseCase<T> {
 
     pub async fn whoami(&self, id: Uuid) -> Result<UserResponse, AuthError> {
         let user = self
-            .user
+            .user_repository
             .find_by_id(id)
             .await?
             .map(UserResponse::from)
@@ -134,7 +137,12 @@ impl<T: UserRepository> AuthUseCase<T> {
     }
 
     pub async fn logout(&self, id: Uuid) -> Result<(), AuthError> {
-        let mut user = match self.user.find_by_id(id).await.map_err(AuthError::from)? {
+        let mut user = match self
+            .user_repository
+            .find_by_id(id)
+            .await
+            .map_err(AuthError::from)?
+        {
             Some(u) => u,
             None => return Err(AuthError::NotFound),
         };
@@ -142,7 +150,7 @@ impl<T: UserRepository> AuthUseCase<T> {
         user.token = None;
         user.updated_at = Utc::now();
 
-        self.user
+        self.user_repository
             .update(&user)
             .await
             .map(|_| ())
@@ -159,7 +167,7 @@ mod tests {
 
     use crate::{
         application::auth::{
-            dto::{LoginDto, RefreshTokenDto, RegisterDto},
+            dto::{LoginRequest, RefreshTokenRequest, RegisterRequest},
             error::AuthError,
             usecase::AuthUseCase,
         },
@@ -189,7 +197,7 @@ mod tests {
 
         let auth = AuthUseCase::new(repo, JWT_SECRET.to_string(), JWT_DURATION);
 
-        let dto = RegisterDto {
+        let dto = RegisterRequest {
             name: "test".to_string(),
             email: "test@domain.com".to_string(),
             password: "test123".to_string(),
@@ -213,7 +221,7 @@ mod tests {
 
         let auth = AuthUseCase::new(repo, JWT_SECRET.to_string(), JWT_DURATION);
 
-        let dto = RegisterDto {
+        let dto = RegisterRequest {
             name: "test".to_string(),
             email: "test@domain.com".to_string(),
             password: "test123".to_string(),
@@ -251,7 +259,7 @@ mod tests {
 
         let auth = AuthUseCase::new(repo, JWT_SECRET.to_string(), JWT_DURATION);
 
-        let dto = LoginDto {
+        let dto = LoginRequest {
             email: "test@domain.com".to_string(),
             password: "test123".to_string(),
         };
@@ -283,7 +291,7 @@ mod tests {
 
         let auth = AuthUseCase::new(repo, JWT_SECRET.to_string(), JWT_DURATION);
 
-        let dto = LoginDto {
+        let dto = LoginRequest {
             email: "test@domain.com".to_string(),
             password: "test123".to_string(),
         };
@@ -321,7 +329,7 @@ mod tests {
 
         let auth = AuthUseCase::new(repo, JWT_SECRET.to_string(), JWT_DURATION);
 
-        let dto = RefreshTokenDto {
+        let dto = RefreshTokenRequest {
             token: token.decrypted,
         };
 
@@ -396,7 +404,7 @@ mod tests {
 
         let auth = AuthUseCase::new(repo, JWT_SECRET.to_string(), JWT_DURATION);
 
-        let dto = RefreshTokenDto {
+        let dto = RefreshTokenRequest {
             token: token.decrypted,
         };
 

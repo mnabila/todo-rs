@@ -19,7 +19,7 @@ use crate::{
 
 #[derive(Clone)]
 pub struct TodoState {
-    pub todo: Arc<TodoUseCase<PostgresTodoRepository>>,
+    pub todo_usecase: Arc<TodoUseCase<PostgresTodoRepository>>,
 }
 
 pub fn setup(opt: &RouterOption) -> Router {
@@ -27,7 +27,7 @@ pub fn setup(opt: &RouterOption) -> Router {
     let usecase = TodoUseCase::new(repo);
 
     let state = TodoState {
-        todo: Arc::new(usecase),
+        todo_usecase: Arc::new(usecase),
     };
 
     Router::new()

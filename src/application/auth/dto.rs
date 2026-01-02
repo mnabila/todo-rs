@@ -4,7 +4,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
-pub struct LoginDto {
+pub struct LoginRequest {
     #[serde(default)]
     #[validate(email, length(min = 1, message = "email is required"))]
     #[schema(example = "demo@demo.com")]
@@ -25,14 +25,14 @@ pub struct AuthResponse {
 }
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
-pub struct RefreshTokenDto {
+pub struct RefreshTokenRequest {
     #[serde(default)]
     #[validate(length(min = 1, message = "token is required"))]
     pub token: String,
 }
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
-pub struct RegisterDto {
+pub struct RegisterRequest {
     #[serde(default)]
     #[validate(length(min = 1, message = "name is required"))]
     pub name: String,

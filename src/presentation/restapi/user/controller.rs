@@ -31,7 +31,7 @@ pub async fn delete_user(
     State(state): State<UserState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.user.delete_user(id).await {
+    match state.user_usecase.delete_user(id).await {
         Ok(_) => ApiResponse::<Empty>::success(None),
         Err(UserError::NotFound) => ApiResponse::not_found("User not found"),
         Err(_) => ApiResponse::general_error(),
@@ -51,7 +51,7 @@ pub async fn delete_user(
 )]
 #[axum::debug_handler]
 pub async fn find_all_user(State(state): State<UserState>) -> impl IntoResponse {
-    match state.user.find_all().await {
+    match state.user_usecase.find_all().await {
         Ok(users) => ApiResponse::<Vec<UserResponse>>::success(Some(users)),
         Err(UserError::NotFound) => ApiResponse::not_found("User not found"),
         Err(_) => ApiResponse::general_error(),
@@ -77,7 +77,7 @@ pub async fn find_user_by_id(
     State(state): State<UserState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.user.find_by_id(id).await {
+    match state.user_usecase.find_by_id(id).await {
         Ok(user) => ApiResponse::<UserResponse>::success(user),
         Err(UserError::NotFound) => ApiResponse::not_found("User not found"),
         Err(_) => ApiResponse::general_error(),

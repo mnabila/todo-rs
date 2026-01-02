@@ -3,25 +3,27 @@ use uuid::Uuid;
 
 use crate::{
     application::todo::{
-        dto::{CreateTodoDto, TodoResponse, UpdateTodoDto},
+        dto::{CreateTodoRequest, TodoResponse, UpdateTodoRequest},
         error::TodoError,
     },
     domain::todo::{model::Todo, repository::TodoRepository},
 };
 
 pub struct TodoUseCase<T: TodoRepository + Send + Sync> {
-    todo: T,
+    todo_repository: T,
 }
 
 impl<T: TodoRepository> TodoUseCase<T> {
     pub fn new(todo: T) -> Self {
-        Self { todo }
+        Self {
+            todo_repository: todo,
+        }
     }
 
     pub async fn create_todo(
         &self,
         user_id: Uuid,
-        dto: CreateTodoDto,
+        dto: CreateTodoRequest,
     ) -> Result<TodoResponse, TodoError> {
         let todo = Todo {
             id: Uuid::new_v4(),
@@ -33,7 +35,7 @@ impl<T: TodoRepository> TodoUseCase<T> {
             updated_at: Utc::now(),
         };
 
-        self.todo
+        self.todo_repository
             .create(todo)
             .await
             .map_err(TodoError::from)
@@ -44,10 +46,10 @@ impl<T: TodoRepository> TodoUseCase<T> {
         &self,
         user_id: Uuid,
         id: Uuid,
-        dto: UpdateTodoDto,
+        dto: UpdateTodoRequest,
     ) -> Result<TodoResponse, TodoError> {
         let mut todo = self
-            .todo
+            .todo_repository
             .find_by_id(user_id, id)
             .await
             .map_err(TodoError::from)?
@@ -57,7 +59,7 @@ impl<T: TodoRepository> TodoUseCase<T> {
         todo.description = dto.description;
         todo.updated_at = Utc::now();
 
-        self.todo
+        self.todo_repository
             .update(todo)
             .await
             .map_err(TodoError::from)
@@ -65,22 +67,28 @@ impl<T: TodoRepository> TodoUseCase<T> {
     }
 
     pub async fn toggle_todo(&self, user_id: Uuid, id: Uuid) -> Result<(), TodoError> {
-        self.todo.toggle(user_id, id).await.map_err(TodoError::from)
+        self.todo_repository
+            .toggle(user_id, id)
+            .await
+            .map_err(TodoError::from)
     }
 
     pub async fn delete_todo(&self, user_id: Uuid, id: Uuid) -> Result<(), TodoError> {
         let todo = self
-            .todo
+            .todo_repository
             .find_by_id(user_id, id)
             .await
             .map_err(TodoError::from)?
             .ok_or(TodoError::NotFound)?;
 
-        self.todo.delete(todo.id).await.map_err(TodoError::from)
+        self.todo_repository
+            .delete(todo.id)
+            .await
+            .map_err(TodoError::from)
     }
 
     pub async fn find_all(&self, user_id: Uuid) -> Result<Vec<TodoResponse>, TodoError> {
-        self.todo
+        self.todo_repository
             .find_all(user_id)
             .await
             .map_err(TodoError::from)
@@ -97,7 +105,7 @@ impl<T: TodoRepository> TodoUseCase<T> {
         user_id: Uuid,
         id: Uuid,
     ) -> Result<Option<TodoResponse>, TodoError> {
-        self.todo
+        self.todo_repository
             .find_by_id(user_id, id)
             .await
             .map_err(TodoError::from)
@@ -112,7 +120,7 @@ mod tests {
 
     use crate::{
         application::todo::{
-            dto::{CreateTodoDto, UpdateTodoDto},
+            dto::{CreateTodoRequest, UpdateTodoRequest},
             usecase::TodoUseCase,
         },
         domain::{
@@ -130,7 +138,7 @@ mod tests {
 
         let usecase = TodoUseCase::new(repo);
 
-        let dto = CreateTodoDto {
+        let dto = CreateTodoRequest {
             title: "test".to_string(),
             description: "hell world".to_string(),
         };
@@ -158,7 +166,7 @@ mod tests {
 
         let usecase = TodoUseCase::new(repo);
 
-        let dto = CreateTodoDto {
+        let dto = CreateTodoRequest {
             title: "test".to_string(),
             description: "hello world".to_string(),
         };
@@ -197,7 +205,7 @@ mod tests {
 
         let usecase = TodoUseCase::new(repo);
 
-        let dto = UpdateTodoDto {
+        let dto = UpdateTodoRequest {
             title: "test".to_string(),
             description: "Lorem ipsum dolor sit amet, qui minim labore adipisicing minim sint cillum sint consectetur cupidatat.".to_string(),
         };
@@ -222,7 +230,7 @@ mod tests {
 
         let usecase = TodoUseCase::new(repo);
 
-        let dto = UpdateTodoDto {
+        let dto = UpdateTodoRequest {
             title: "test".to_string(),
             description: "hello world".to_string(),
         };
