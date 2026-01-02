@@ -107,7 +107,7 @@ pub async fn refresh_access_token(
 
 #[utoipa::path(
     get,
-    path = "/users/me",
+    path = "/auth/whoami",
     responses(
         (status = 200, description = "Returns authenticated user information", body = ApiResponse<UserResponse>),
         (status = 401, description = "Unauthorized - invalid JWT claims", body = ApiResponse<Empty>),

@@ -22,12 +22,9 @@ pub struct TodoState {
     pub todo_usecase: Arc<TodoUseCase<PostgresTodoRepository>>,
 }
 
-pub fn setup(opt: &RouterOption) -> Router {
-    let repo = PostgresTodoRepository::new(opt.pool.clone());
-    let usecase = TodoUseCase::new(repo);
-
+pub fn setup(opt: &RouterOption, todo_usecase: Arc<TodoUseCase<PostgresTodoRepository>>) -> Router {
     let state = TodoState {
-        todo_usecase: Arc::new(usecase),
+        todo_usecase: todo_usecase,
     };
 
     Router::new()
